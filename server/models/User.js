@@ -64,26 +64,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    sentRequests: [
-  {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  }
-  ],
-
-  receivedRequests: [
-  {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  }
-  ],
-
-  studyBuddies: [
-  {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  }
-  ],
 
   },
   {
