@@ -65,6 +65,13 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    studyBuddies: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  }
+  ],
+
   },
   {
     timestamps: true,
