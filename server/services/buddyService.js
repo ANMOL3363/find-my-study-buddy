@@ -108,3 +108,55 @@ export const cancelBuddyRequestService = async (requestId, userId) => {
 
   await BuddyRequest.findByIdAndDelete(requestId);
 };
+
+export const getSentRequestsService = async (userId) => {
+  return await BuddyRequest.find({
+    sender: userId
+  })
+    .populate("receiver", "fullName email college course year profilePic")
+    .sort({ createdAt: -1 });
+};
+
+export const getStudyBuddiesService = async (userId) => {
+  const user = await User.findById(userId)
+    .populate(
+      "studyBuddies",
+      "fullName email college course year bio profilePic subjects studyMode location"
+    );
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user.studyBuddies;
+};
+
+export const removeStudyBuddyService = async (userId, buddyId) => {
+  const user = await User.findById(userId);
+  const buddy = await User.findById(buddyId);
+
+  if (!user || !buddy) {
+    throw new Error("User not found");
+  }
+
+  user.studyBuddies.pull(buddyId);
+  buddy.studyBuddies.pull(userId);
+
+  await user.save();
+  await buddy.save();
+
+  await BuddyRequest.findOneAndDelete({
+    $or: [
+      {
+        sender: userId,
+        receiver: buddyId,
+        status: "accepted"
+      },
+      {
+        sender: buddyId,
+        receiver: userId,
+        status: "accepted"
+      }
+    ]
+  });
+};
