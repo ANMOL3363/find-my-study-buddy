@@ -4,7 +4,9 @@ import BuddyRequest from "../models/BuddyRequest.js";
 import {
   createBuddyRequest,
   acceptBuddyRequestService,
-  getReceivedRequestsService
+  getReceivedRequestsService,
+  rejectBuddyRequestService,
+  cancelBuddyRequestService
 } from "../services/buddyService.js";
 
 export const sendBuddyRequest = async (req, res) => {
@@ -53,6 +55,44 @@ export const acceptBuddyRequest = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Buddy request accepted"
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const rejectBuddyRequest = async (req, res) => {
+  try {
+    await rejectBuddyRequestService(
+      req.params.requestId,
+      req.user._id
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Buddy request rejected"
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const cancelBuddyRequest = async (req, res) => {
+  try {
+    await cancelBuddyRequestService(
+      req.params.requestId,
+      req.user._id
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Buddy request cancelled successfully"
     });
   } catch (error) {
     res.status(400).json({

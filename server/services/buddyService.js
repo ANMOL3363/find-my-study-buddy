@@ -70,3 +70,41 @@ export const getReceivedRequestsService = async (userId) => {
     .populate("sender", "fullName email college course year profilePic")
     .sort({ createdAt: -1 });
 };
+
+export const rejectBuddyRequestService = async (requestId, userId) => {
+  const request = await BuddyRequest.findById(requestId);
+
+  if (!request) {
+    throw new Error("Request not found");
+  }
+
+  if (request.receiver.toString() !== userId.toString()) {
+    throw new Error("Unauthorized");
+  }
+
+  if (request.status !== "pending") {
+    throw new Error("Request already processed");
+  }
+
+  request.status = "rejected";
+
+  await request.save();
+};
+
+export const cancelBuddyRequestService = async (requestId, userId) => {
+  const request = await BuddyRequest.findById(requestId);
+
+  if (!request) {
+    throw new Error("Request not found");
+  }
+
+  if (request.sender.toString() !== userId.toString()) {
+    throw new Error("Unauthorized");
+  }
+
+  if (request.status !== "pending") {
+    throw new Error("Only pending requests can be cancelled");
+  }
+
+  await BuddyRequest.findByIdAndDelete(requestId);
+};
