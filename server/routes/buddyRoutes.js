@@ -32,3 +32,5 @@ router.get("/list",authMiddleware,getStudyBuddies);
 router.delete("/remove/:buddyId",authMiddleware,removeStudyBuddy);
 
 export default router;
+
+
