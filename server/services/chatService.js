@@ -1,6 +1,7 @@
 
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import mongoose from "mongoose";
 
 export const sendMessageService = async (
   senderId,
@@ -47,4 +48,73 @@ export const getConversationService = async (
   }).sort({
     createdAt: 1
   });
+};
+
+
+
+export const getChatListService = async (userId) => {
+  return await Message.aggregate([
+    {
+      $match: {
+        $or: [
+          { sender: new mongoose.Types.ObjectId(userId) },
+          { receiver: new mongoose.Types.ObjectId(userId) }
+        ]
+      }
+    },
+    {
+      $sort: {
+        createdAt: -1
+      }
+    },
+    {
+      $group: {
+        _id: {
+          $cond: [
+            {
+              $eq: ["$sender", new mongoose.Types.ObjectId(userId)]
+            },
+            "$receiver",
+            "$sender"
+          ]
+        },
+        lastMessage: {
+          $first: "$message"
+        },
+        lastMessageTime: {
+          $first: "$createdAt"
+        },
+        isRead: {
+          $first: "$isRead"
+        }
+      }
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "_id",
+        as: "user"
+      }
+    },
+    {
+      $unwind: "$user"
+    },
+    {
+      $project: {
+        _id: "$user._id",
+        fullName: "$user.fullName",
+        email: "$user.email",
+        profilePic: "$user.profilePic",
+        lastMessage: 1,
+        lastMessageTime: 1,
+        isRead: 1
+      }
+    },
+    {
+      $sort: {
+        lastMessageTime: -1
+      }
+    }
+  ]);
 };

@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test Client</title>
+</head>
+<body>
+
+<h2>Socket.IO Test Client</h2>
+
+<label>User ID</label><br>
+<input type="text" id="userId" placeholder="Enter User ID" size="60">
+<button onclick="join()">Join</button>
+
+<br><br>
+
+<label>JWT Token</label><br>
+<input type="text" id="token" placeholder="Paste JWT Token" size="100">
+
+<br><br>
+
+<label>Receiver ID</label><br>
+<input type="text" id="receiverId" placeholder="Receiver ID" size="60">
+
+<br><br>
+
+<label>Message</label><br>
+<input type="text" id="message" placeholder="Type a message" size="60">
+<button onclick="sendMessage()">Send</button>
+
+<hr>
+
+<h3>Received Messages</h3>
+
+<ul id="messages"></ul>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+const socket = io("http://localhost:5000");
+
+socket.on("connect", () => {
+    console.log("Connected:", socket.id);
+});
+
+socket.on("onlineUsers", (users) => {
+    console.log("Online Users:", users);
+});
+
+socket.on("newMessage", (message) => {
+    const li = document.createElement("li");
+    li.innerText = JSON.stringify(message, null, 2);
+    document.getElementById("messages").appendChild(li);
+});
+
+function join() {
+    const userId = document.getElementById("userId").value;
+
+    socket.emit("join", userId);
+
+    alert("Joined successfully");
+}
+
+async function sendMessage() {
+
+    const receiverId = document.getElementById("receiverId").value;
+    const message = document.getElementById("message").value;
+    const token = document.getElementById("token").value;
+
+    const response = await fetch(`http://localhost:5000/api/chat/send/${receiverId}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            message
+        })
+    });
+
+    const data = await response.json();
+
+    console.log(data);
+}
+</script>
+
+</body>
+</html>

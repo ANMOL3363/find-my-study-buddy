@@ -8,6 +8,11 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import buddyRoutes from "./routes/buddyRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import { initializeSocket } from "./sockets/socket.js";
+
+
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 
 dotenv.config();
@@ -32,6 +37,17 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+initializeSocket(io);
+
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
