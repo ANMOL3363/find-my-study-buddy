@@ -2,86 +2,278 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Socket.IO Test Client</title>
+    <title>Study Buddy Chat Test</title>
 </head>
 <body>
 
-<h2>Socket.IO Test Client</h2>
+<h2>Study Buddy Chat Test</h2>
 
-<label>User ID</label><br>
-<input type="text" id="userId" placeholder="Enter User ID" size="60">
+<label>User ID</label>
+<br>
+<input
+    type="text"
+    id="userId"
+    placeholder="Enter User ID"
+    size="60"
+>
 <button onclick="join()">Join</button>
 
-<br><br>
+<br>
+<br>
 
-<label>JWT Token</label><br>
-<input type="text" id="token" placeholder="Paste JWT Token" size="100">
+<label>JWT Token</label>
+<br>
+<input
+    type="text"
+    id="token"
+    placeholder="Paste JWT Token"
+    size="100"
+>
 
-<br><br>
+<br>
+<br>
 
-<label>Receiver ID</label><br>
-<input type="text" id="receiverId" placeholder="Receiver ID" size="60">
+<label>Receiver ID</label>
+<br>
+<input
+    type="text"
+    id="receiverId"
+    placeholder="Enter Receiver ID"
+    size="60"
+>
 
-<br><br>
+<br>
+<br>
 
-<label>Message</label><br>
-<input type="text" id="message" placeholder="Type a message" size="60">
+<label>Message</label>
+<br>
+<input
+    type="text"
+    id="message"
+    placeholder="Type a message"
+    size="60"
+>
+
 <button onclick="sendMessage()">Send</button>
 
 <hr>
 
-<h3>Received Messages</h3>
+<h3>Connection Status</h3>
+<p id="connectionStatus">Connecting...</p>
+
+<h3>Online Users</h3>
+<p id="onlineUsers"></p>
+
+<h3>Messages</h3>
 
 <ul id="messages"></ul>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
+
 const socket = io("http://localhost:5000");
 
 socket.on("connect", () => {
     console.log("Connected:", socket.id);
+
+    document.getElementById("connectionStatus").innerText =
+        "Connected: " + socket.id;
+});
+
+socket.on("disconnect", () => {
+    console.log("Disconnected");
+
+    document.getElementById("connectionStatus").innerText =
+        "Disconnected";
 });
 
 socket.on("onlineUsers", (users) => {
     console.log("Online Users:", users);
+
+    document.getElementById("onlineUsers").innerText =
+        users.join(", ");
+});
+
+socket.on("userOnline", (data) => {
+    console.log("User Online:", data.userId);
+});
+
+socket.on("userOffline", (data) => {
+    console.log("User Offline:", data.userId);
 });
 
 socket.on("newMessage", (message) => {
+
+    console.log("New Message:", message);
+
     const li = document.createElement("li");
-    li.innerText = JSON.stringify(message, null, 2);
-    document.getElementById("messages").appendChild(li);
+
+    li.innerText =
+        `${message.message} | Status: ${message.status}`;
+
+    li.style.cursor = "pointer";
+
+    li.onclick = () => {
+
+        const userId =
+            document.getElementById("userId").value;
+
+        socket.emit("messageRead", {
+            messageId: message._id,
+            userId
+        });
+    };
+
+    document
+        .getElementById("messages")
+        .appendChild(li);
+
+    socket.emit(
+        "messageDelivered",
+        message._id
+    );
 });
 
+socket.on("messageDelivered", (message) => {
+
+    console.log(
+        "Message Delivered:",
+        message
+    );
+
+    updateMessageStatus(
+        message._id,
+        message.status
+    );
+});
+
+socket.on("messageRead", (message) => {
+
+    console.log(
+        "Message Read:",
+        message
+    );
+
+    updateMessageStatus(
+        message._id,
+        message.status
+    );
+});
+
+function updateMessageStatus(messageId, status) {
+
+    const messages =
+        document.getElementById("messages")
+            .children;
+
+    for (const messageElement of messages) {
+
+        if (messageElement.dataset.messageId === messageId) {
+
+            messageElement.innerText =
+                messageElement.innerText
+                    .replace(
+                        /Status: \w+/,
+                        `Status: ${status}`
+                    );
+
+            break;
+        }
+    }
+}
+
 function join() {
-    const userId = document.getElementById("userId").value;
 
-    socket.emit("join", userId);
+    const userId =
+        document.getElementById("userId").value;
 
-    alert("Joined successfully");
+    if (!userId) {
+        alert("Enter User ID");
+        return;
+    }
+
+    socket.emit(
+        "join",
+        userId
+    );
+
+    console.log(
+        "Joined as:",
+        userId
+    );
 }
 
 async function sendMessage() {
 
-    const receiverId = document.getElementById("receiverId").value;
-    const message = document.getElementById("message").value;
-    const token = document.getElementById("token").value;
+    const receiverId =
+        document.getElementById("receiverId").value;
 
-    const response = await fetch(`http://localhost:5000/api/chat/send/${receiverId}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-            message
-        })
-    });
+    const message =
+        document.getElementById("message").value;
 
-    const data = await response.json();
+    const token =
+        document.getElementById("token").value;
 
-    console.log(data);
+    if (!receiverId) {
+        alert("Enter Receiver ID");
+        return;
+    }
+
+    if (!message) {
+        alert("Enter a message");
+        return;
+    }
+
+    if (!token) {
+        alert("Enter JWT Token");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5000/api/chat/send/${receiverId}`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+
+                body: JSON.stringify({
+                    message
+                })
+            }
+        );
+
+        const data =
+            await response.json();
+
+        console.log(
+            "Send Message Response:",
+            data
+        );
+
+        if (!response.ok) {
+            alert(data.message);
+            return;
+        }
+
+        document.getElementById("message").value = "";
+
+    } catch (error) {
+
+        console.error(
+            "Send Message Error:",
+            error
+        );
+
+        alert("Failed to send message");
+    }
 }
+
 </script>
 
 </body>

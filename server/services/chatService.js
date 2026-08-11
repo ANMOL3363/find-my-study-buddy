@@ -118,3 +118,36 @@ export const getChatListService = async (userId) => {
     }
   ]);
 };
+
+export const markMessageAsReadService = async (messageId, userId) => {
+  const message = await Message.findById(messageId);
+
+  if (!message) {
+    throw new Error("Message not found");
+  }
+
+  if (message.receiver.toString() !== userId.toString()) {
+    throw new Error("Unauthorized");
+  }
+
+  message.status = "read";
+
+  await message.save();
+
+  return message;
+};
+
+export const markMessageAsDeliveredService = async (messageId) => {
+  const message = await Message.findById(messageId);
+
+  if (!message) {
+    throw new Error("Message not found");
+  }
+
+  if (message.status === "sent") {
+    message.status = "delivered";
+    await message.save();
+  }
+
+  return message;
+};

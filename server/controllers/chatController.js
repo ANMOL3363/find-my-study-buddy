@@ -10,10 +10,15 @@ export const sendMessage = async (req, res) => {
       req.body.message
     );
 
-    const receiverSocketId = getReceiverSocketId(req.params.receiverId);
+    const receiverSocketId = getReceiverSocketId(
+      req.params.receiverId
+    );
 
     if (receiverSocketId) {
-      getIO().to(receiverSocketId).emit("newMessage", newMessage);
+      getIO().to(receiverSocketId).emit(
+        "newMessage",
+        newMessage
+      );
     }
 
     res.status(201).json({
