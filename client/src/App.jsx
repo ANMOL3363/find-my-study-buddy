@@ -5,21 +5,14 @@ import {
   Route,
   Navigate
 } from "react-router-dom";
-import Register from "./pages/Register";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import FindBuddies from "./pages/FindBuddies";
 
 function Home() {
   return <Navigate to="/login" />;
-}
-
-function Dashboard() {
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Welcome to Study Buddy.</p>
-    </div>
-  );
 }
 
 function App() {
@@ -27,9 +20,27 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={<Register />}
+        />
+
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
+
+        <Route
+          path="/find-buddies"
+          element={<FindBuddies />}
+        />
+
         <Route
           path="*"
           element={<Navigate to="/login" />}
