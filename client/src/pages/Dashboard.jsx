@@ -34,7 +34,7 @@ function Dashboard() {
           Find Study Buddies
         </button>
 
-        <button>
+        <button onClick={() => navigate("/buddy-requests")}>
           Buddy Requests
         </button>
 

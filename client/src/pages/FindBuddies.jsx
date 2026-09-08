@@ -14,7 +14,9 @@ function FindBuddies() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [requestingUser, setRequestingUser] = useState(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const getUsers = async (customFilters = filters) => {
     try {
@@ -62,7 +64,40 @@ function FindBuddies() {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    setSuccess("");
     getUsers();
+  };
+
+  const sendBuddyRequest = async (userId) => {
+    try {
+      setRequestingUser(userId);
+      setError("");
+      setSuccess("");
+
+      const token = localStorage.getItem("token");
+
+      const response = await api.post(
+        `/buddies/request/${userId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      setSuccess(
+        response.data.message ||
+        "Buddy request sent successfully"
+      );
+    } catch (error) {
+      setError(
+        error.response?.data?.message ||
+        "Failed to send buddy request"
+      );
+    } finally {
+      setRequestingUser(null);
+    }
   };
 
   return (
@@ -168,7 +203,13 @@ function FindBuddies() {
 
       {loading && <p>Loading users...</p>}
 
-      {error && <p>{error}</p>}
+      {error && (
+        <p>{error}</p>
+      )}
+
+      {success && (
+        <p>{success}</p>
+      )}
 
       {!loading && users.length === 0 && (
         <p>No users found.</p>
@@ -188,11 +229,17 @@ function FindBuddies() {
 
             <p>Email: {user.email}</p>
 
-            <p>College: {user.college || "Not provided"}</p>
+            <p>
+              College: {user.college || "Not provided"}
+            </p>
 
-            <p>Course: {user.course || "Not provided"}</p>
+            <p>
+              Course: {user.course || "Not provided"}
+            </p>
 
-            <p>Year: {user.year || "Not provided"}</p>
+            <p>
+              Year: {user.year || "Not provided"}
+            </p>
 
             <p>
               Subjects:{" "}
@@ -202,17 +249,27 @@ function FindBuddies() {
             </p>
 
             <p>
-              Study Mode: {user.studyMode || "Not provided"}
+              Study Mode:{" "}
+              {user.studyMode || "Not provided"}
             </p>
 
             <p>
-              Location: {user.location || "Not provided"}
+              Location:{" "}
+              {user.location || "Not provided"}
             </p>
 
             <p>
               Bio: {user.bio || "No bio available"}
             </p>
 
+            <button
+              onClick={() => sendBuddyRequest(user._id)}
+              disabled={requestingUser === user._id}
+            >
+              {requestingUser === user._id
+                ? "Sending..."
+                : "Send Buddy Request"}
+            </button>
           </div>
         ))}
       </div>

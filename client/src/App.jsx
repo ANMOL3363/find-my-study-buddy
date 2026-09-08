@@ -10,6 +10,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import FindBuddies from "./pages/FindBuddies";
+import BuddyRequests from "./pages/BuddyRequests";
+
 
 function Home() {
   return <Navigate to="/login" />;
@@ -44,6 +46,10 @@ function App() {
         <Route
           path="*"
           element={<Navigate to="/login" />}
+        />
+        <Route
+          path="/buddy-requests"
+          element={<BuddyRequests />}
         />
       </Routes>
     </BrowserRouter>
