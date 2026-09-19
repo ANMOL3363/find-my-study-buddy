@@ -38,11 +38,11 @@ function Dashboard() {
           Buddy Requests
         </button>
 
-        <button>
+        <button onClick={() => navigate("/my-buddies")}>
           My Buddies
         </button>
 
-        <button>
+        <button onClick={() => navigate("/chat")}>
           Chat
         </button>
       </div>

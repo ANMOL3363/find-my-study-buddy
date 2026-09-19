@@ -11,6 +11,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import FindBuddies from "./pages/FindBuddies";
 import BuddyRequests from "./pages/BuddyRequests";
+import MyBuddies from "./pages/MyBuddies";
+import Chat from "./pages/Chat";
 
 
 function Home() {
@@ -51,6 +53,11 @@ function App() {
           path="/buddy-requests"
           element={<BuddyRequests />}
         />
+        <Route
+          path="/my-buddies"
+          element={<MyBuddies />}
+        />
+        <Route path="/chat" element={<Chat />} />
       </Routes>
     </BrowserRouter>
   );
