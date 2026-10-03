@@ -1,8 +1,10 @@
 
+import "./Chat.css";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import api from "../services/api";
+
 
 function Chat() {
   const navigate = useNavigate();
@@ -17,14 +19,42 @@ function Chat() {
   const messagesEndRef = useRef(null);
 
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
 
+  const storedUser =
+  localStorage.getItem("user");
+
+  let user = null;
+
+  try {
+  user = storedUser
+    ? JSON.parse(storedUser)
+    : null;
+  } catch (error) {
+  console.error(
+    "Invalid user data in localStorage:",
+    error
+  );
+  }
+
+  
   useEffect(() => {
-    if (!token || !user) {
-      navigate("/login");
-      return;
-    }
+    if (!token) {
+  console.log("❌ Token not found");
+  navigate("/login");
+  return;
+  }
 
+  if (!user) {
+  console.log("❌ User not found in localStorage");
+  return;
+  }
+
+  console.log("✅ Chat authentication:", {
+  tokenExists: !!token,
+  user,
+  userId: user._id
+  });
+    
     loadChats();
 
     const socket = io("http://localhost:5000");
@@ -33,6 +63,7 @@ function Chat() {
 
     socket.on("connect", () => {
       console.log("Socket connected:", socket.id);
+
       socket.emit("join", user._id);
     });
 
@@ -44,10 +75,13 @@ function Chat() {
     });
 
     socket.on("onlineUsers", (users) => {
-      setOnlineUsers(users);
+      setOnlineUsers(users || []);
     });
 
+
     socket.on("newMessage", (newMessage) => {
+      console.log("New message received:", newMessage);
+
       const senderId =
         newMessage?.sender?._id ||
         newMessage?.sender ||
@@ -56,7 +90,7 @@ function Chat() {
       if (
         selectedUser &&
         senderId &&
-        selectedUser._id &&
+        selectedUser?._id &&
         senderId.toString() ===
           selectedUser._id.toString()
       ) {
@@ -65,14 +99,17 @@ function Chat() {
           newMessage
         ]);
 
-        socket.emit(
-          "messageDelivered",
-          newMessage._id
-        );
+        if (newMessage?._id) {
+          socket.emit(
+            "messageDelivered",
+            newMessage._id
+          );
+        }
       }
 
       loadChats();
     });
+
 
     socket.on("messageRead", (updatedMessage) => {
       setMessages((prev) =>
@@ -84,6 +121,7 @@ function Chat() {
       );
     });
 
+   
     socket.on(
       "messageDelivered",
       (updatedMessage) => {
@@ -100,13 +138,17 @@ function Chat() {
     return () => {
       socket.disconnect();
     };
+
   }, [token, user?._id, navigate, selectedUser]);
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth"
     });
   }, [messages]);
+
+
 
   const loadChats = async () => {
     try {
@@ -128,6 +170,7 @@ function Chat() {
         response.data?.chats || [];
 
       setChats(chatList);
+
     } catch (error) {
       console.error(
         error.response?.data?.message ||
@@ -135,6 +178,8 @@ function Chat() {
       );
     }
   };
+
+
 
   const getChatUser = (chat) => {
     if (!chat) {
@@ -174,12 +219,15 @@ function Chat() {
     return null;
   };
 
+
   const openChat = async (chatUser) => {
+
     if (!chatUser?._id) {
       return;
     }
 
     try {
+
       setSelectedUser(chatUser);
 
       const response = await api.get(
@@ -210,6 +258,7 @@ function Chat() {
       setMessages(conversation);
 
       conversation.forEach((item) => {
+
         if (!item) {
           return;
         }
@@ -227,6 +276,7 @@ function Chat() {
           item?.status !== "read" &&
           item?._id
         ) {
+
           socketRef.current?.emit(
             "messageRead",
             {
@@ -236,7 +286,9 @@ function Chat() {
           );
         }
       });
+
     } catch (error) {
+
       console.error(
         "Failed to load conversation:",
         error.response?.data ||
@@ -245,7 +297,11 @@ function Chat() {
     }
   };
 
+
+  
+
   const sendMessage = async (event) => {
+
     event.preventDefault();
 
     if (
@@ -256,6 +312,7 @@ function Chat() {
     }
 
     try {
+
       const response = await api.post(
         `/chat/send/${selectedUser._id}`,
         {
@@ -272,6 +329,7 @@ function Chat() {
         response.data?.message;
 
       if (sentMessage) {
+
         setMessages((prev) => [
           ...prev,
           sentMessage
@@ -281,7 +339,15 @@ function Chat() {
       setMessage("");
 
       loadChats();
+
     } catch (error) {
+
+      console.error(
+        "Send message error:",
+        error.response?.data ||
+          error.message
+      );
+
       alert(
         error.response?.data?.message ||
           "Failed to send message"
@@ -290,6 +356,7 @@ function Chat() {
   };
 
   const isOnline = (userId) => {
+
     if (!userId) {
       return false;
     }
@@ -301,172 +368,430 @@ function Chat() {
     );
   };
 
+
+  const getInitial = (name) => {
+
+    if (!name) {
+      return "?";
+    }
+
+    return name
+      .charAt(0)
+      .toUpperCase();
+  };
+
   return (
-    <div>
-      <h1>Study Buddy Chat</h1>
+    <div className="chat-page">
 
-      <button
-        onClick={() =>
-          navigate("/dashboard")
-        }
-      >
-        Back to Dashboard
-      </button>
+      <div className="chat-container">
 
-      <hr />
+        {/* =========================
+            HEADER
+        ========================= */}
 
-      <div>
-        <h2>My Chats</h2>
-
-        {chats.length === 0 ? (
-          <p>
-            No conversations yet.
-          </p>
-        ) : (
-          chats.map((chat, index) => {
-            const chatUser =
-              getChatUser(chat);
-
-            if (!chatUser) {
-              return null;
-            }
-
-            return (
-              <button
-                key={
-                  chatUser._id ||
-                  index
-                }
-                onClick={() =>
-                  openChat(chatUser)
-                }
-              >
-                {chatUser.fullName ||
-                  "Study Buddy"}
-
-                {isOnline(
-                  chatUser._id
-                ) && " 🟢"}
-              </button>
-            );
-          })
-        )}
-      </div>
-
-      <hr />
-
-      {selectedUser ? (
-        <div>
-          <h2>
-            {selectedUser.fullName ||
-              "Study Buddy"}
-
-            {isOnline(
-              selectedUser._id
-            ) && " 🟢"}
-          </h2>
+        <div className="chat-header">
 
           <div>
-            {messages.map((item, index) => {
-              if (!item) {
-                return null;
-              }
+            <h1>Study Buddy Chat</h1>
 
-              const senderId =
-                item?.sender?._id ||
-                item?.sender ||
-                null;
-
-              const currentUserId =
-                user?._id || null;
-
-              const isMine =
-                senderId &&
-                currentUserId &&
-                senderId.toString() ===
-                  currentUserId.toString();
-
-              return (
-                <div
-                  key={
-                    item?._id ||
-                    index
-                  }
-                  style={{
-                    textAlign: isMine
-                      ? "right"
-                      : "left",
-                    margin: "10px"
-                  }}
-                  onClick={() => {
-                    if (
-                      !isMine &&
-                      item?._id &&
-                      item?.status !==
-                        "read"
-                    ) {
-                      socketRef.current?.emit(
-                        "messageRead",
-                        {
-                          messageId:
-                            item._id,
-                          userId:
-                            currentUserId
-                        }
-                      );
-                    }
-                  }}
-                >
-                  <div>
-                    {item?.message ||
-                      ""}
-                  </div>
-
-                  {isMine && (
-                    <small>
-                      {item?.status ===
-                      "read"
-                        ? "✓✓ Read"
-                        : item?.status ===
-                          "delivered"
-                        ? "✓✓ Delivered"
-                        : "✓ Sent"}
-                    </small>
-                  )}
-                </div>
-              );
-            })}
-
-            <div
-              ref={messagesEndRef}
-            />
+            <p
+              style={{
+                margin: "4px 0 0",
+                fontSize: "13px",
+                color: "#6b7280"
+              }}
+            >
+              Connect and study together
+            </p>
           </div>
 
-          <form
-            onSubmit={sendMessage}
+          <button
+            className="back-button"
+            onClick={() =>
+              navigate("/dashboard")
+            }
           >
-            <input
-                id="message"
-                name="message"
-                type="text"
-                placeholder="Type a message..."
-                value={message}
-                onChange={(event) =>
-                setMessage(event.target.value)
-                }
-            />
+            ← Dashboard
+          </button>
 
-            <button type="submit">
-              Send
-            </button>
-          </form>
         </div>
-      ) : (
-        <p>
-          Select a study buddy to
-          start chatting.
-        </p>
-      )}
+
+
+        {/* =========================
+            BODY
+        ========================= */}
+
+        <div className="chat-body">
+
+
+          {/* =========================
+              SIDEBAR
+          ========================= */}
+
+          <div className="chat-sidebar">
+
+            <h2 className="sidebar-title">
+              My Chats
+            </h2>
+
+            {chats.length === 0 ? (
+
+              <div className="no-chats">
+                No conversations yet.
+              </div>
+
+            ) : (
+
+              chats.map((chat, index) => {
+
+                const chatUser =
+                  getChatUser(chat);
+
+                if (!chatUser) {
+                  return null;
+                }
+
+                const active =
+                  selectedUser?._id?.toString() ===
+                  chatUser?._id?.toString();
+
+                return (
+                  <button
+                    key={
+                      chatUser._id ||
+                      index
+                    }
+                    className={`chat-user-button ${
+                      active
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      openChat(chatUser)
+                    }
+                  >
+
+                    {/* AVATAR */}
+
+                    <div className="avatar">
+
+                      {getInitial(
+                        chatUser.fullName
+                      )}
+
+                    </div>
+
+
+                    {/* USER INFO */}
+
+                    <div className="chat-user-info">
+
+                      <span className="chat-user-name">
+
+                        {chatUser.fullName ||
+                          "Study Buddy"}
+
+                      </span>
+
+
+                      <span className="chat-user-status">
+
+                        {isOnline(
+                          chatUser._id
+                        ) ? (
+
+                          <span className="online-dot">
+                            ● Online
+                          </span>
+
+                        ) : (
+
+                          "Offline"
+
+                        )}
+
+                      </span>
+
+                    </div>
+
+                  </button>
+                );
+              })
+            )}
+
+          </div>
+
+
+          {/* =========================
+              MAIN CHAT
+          ========================= */}
+
+          <div className="chat-main">
+
+            {!selectedUser ? (
+
+              <div className="empty-chat">
+
+                <div>
+
+                  <div
+                    style={{
+                      fontSize: "50px",
+                      marginBottom: "10px"
+                    }}
+                  >
+                    💬
+                  </div>
+
+                  <h2>
+                    Select a Study Buddy
+                  </h2>
+
+                  <p>
+                    Choose a buddy from the
+                    left to start chatting.
+                  </p>
+
+                </div>
+
+              </div>
+
+            ) : (
+
+              <>
+
+                {/* =========================
+                    CHAT HEADER
+                ========================= */}
+
+                <div className="chat-main-header">
+
+                  <div className="avatar">
+
+                    {getInitial(
+                      selectedUser.fullName
+                    )}
+
+                  </div>
+
+
+                  <div>
+
+                    <h2>
+
+                      {selectedUser.fullName ||
+                        "Study Buddy"}
+
+                    </h2>
+
+
+                    <span className="chat-user-status">
+
+                      {isOnline(
+                        selectedUser._id
+                      ) ? (
+
+                        <span className="online-dot">
+                          ● Online
+                        </span>
+
+                      ) : (
+
+                        "Offline"
+
+                      )}
+
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                {/* =========================
+                    MESSAGES
+                ========================= */}
+
+                <div className="chat-messages">
+
+                  {messages.length === 0 ? (
+
+                    <div className="empty-chat">
+
+                      <div>
+
+                        <div
+                          style={{
+                            fontSize: "40px"
+                          }}
+                        >
+                          👋
+                        </div>
+
+                        <p>
+                          No messages yet.
+                          Say hello!
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  ) : (
+
+                    messages.map(
+                      (item, index) => {
+
+                        if (!item) {
+                          return null;
+                        }
+
+                        const senderId =
+                          item?.sender?._id ||
+                          item?.sender ||
+                          null;
+
+                        const currentUserId =
+                          user?._id ||
+                          null;
+
+                        const isMine =
+                          senderId &&
+                          currentUserId &&
+                          senderId.toString() ===
+                            currentUserId.toString();
+
+
+                        return (
+
+                          <div
+                            key={
+                              item?._id ||
+                              index
+                            }
+                            className={`message-row ${
+                              isMine
+                                ? "mine"
+                                : ""
+                            }`}
+                            onClick={() => {
+
+                              if (
+                                !isMine &&
+                                item?._id &&
+                                item?.status !==
+                                  "read"
+                              ) {
+
+                                socketRef.current?.emit(
+                                  "messageRead",
+                                  {
+                                    messageId:
+                                      item._id,
+                                    userId:
+                                      currentUserId
+                                  }
+                                );
+                              }
+
+                            }}
+                          >
+
+                            <div className="message-bubble">
+
+                              <div className="message-text">
+
+                                {item?.message ||
+                                  ""}
+
+                              </div>
+
+
+                              {/* STATUS */}
+
+                              {isMine && (
+
+                                <span className="message-status">
+
+                                  {item?.status ===
+                                  "read"
+
+                                    ? "✓✓ Read"
+
+                                    : item?.status ===
+                                      "delivered"
+
+                                    ? "✓✓ Delivered"
+
+                                    : "✓ Sent"}
+
+                                </span>
+
+                              )}
+
+                            </div>
+
+                          </div>
+                        );
+                      }
+                    )
+
+                  )}
+
+                  <div
+                    ref={messagesEndRef}
+                  />
+
+                </div>
+
+
+                {/* =========================
+                    MESSAGE INPUT
+                ========================= */}
+
+                <form
+                  className="message-form"
+                  onSubmit={sendMessage}
+                >
+
+                  <input
+                    id="message"
+                    name="message"
+                    className="message-input"
+                    type="text"
+                    placeholder="Type a message..."
+                    value={message}
+                    onChange={(event) =>
+                      setMessage(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="off"
+                  />
+
+
+                  <button
+                    className="send-button"
+                    type="submit"
+                    disabled={
+                      !message.trim()
+                    }
+                  >
+                    Send
+                  </button>
+
+                </form>
+
+              </>
+
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
